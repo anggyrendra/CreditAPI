@@ -7,8 +7,8 @@ $RepoPath = "D:\KreditAPI\CreditAPI"   # Folder project
 $CommitMessage = Read-Host "Masukkan pesan commit"
 
 # Input GitHub credentials
-$GitHubUsername = Read-Host "anggyrendra"
-$GitHubPAT = Read-Host "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" -AsSecureString
+$GitHubUsername = Read-Host "Masukkan username GitHub"
+$GitHubPAT = Read-Host "Masukkan Personal Access Token GitHub" -AsSecureString
 
 # Convert secure string ke plain text untuk digunakan di URL
 $PtrBSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($GitHubPAT)
