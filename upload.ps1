@@ -1,60 +1,58 @@
-# =======================
-# Script Upload GitHub Otomatis
-# =======================
+# upload.ps1
+# Script otomatis upload ke GitHub dengan pull, conflict handling, dan opsi force push
 
-# Konfigurasi
-$RepoPath = "D:\KreditAPI\CreditAPI"   # Folder project
-$CommitMessage = Read-Host "Masukkan pesan commit"
+# Konfigurasi GitHub
+$GitHubUsername = "anggyrendra"          # ganti dengan username GitHub-mu
+$GitHubPAT = "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"  # ganti dengan Personal Access Token
+$BranchName = "main"                     # branch default
 
-# Input GitHub credentials
-$GitHubUsername = Read-Host "Masukkan username GitHub"
-$GitHubPAT = Read-Host "Masukkan Personal Access Token GitHub" -AsSecureString
+# Remote URL dengan token (HTTPS)
+$RemoteURL = "https://${GitHubUsername}:${GitHubPAT}@github.com/${GitHubUsername}/CreditAPI.git"
 
-# Convert secure string ke plain text untuk digunakan di URL
-$PtrBSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($GitHubPAT)
-$GitHubPATPlain = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($PtrBSTR)
-
-# Nama repo (sesuai repo GitHub Anda)
-$RepoName = "CreditAPI"
-
-# Pindah ke folder project
-Set-Location $RepoPath
-
-# Cek apakah git sudah di-init
-if (-not (Test-Path ".git")) {
-    git init
-    Write-Host "Git repository baru di-init."
-}
+Write-Host "Memulai upload repository GitHub..." -ForegroundColor Cyan
 
 # Tambahkan semua perubahan
 git add .
 
 # Commit perubahan
+$CommitMessage = Read-Host "Masukkan pesan commit"
+if (-not $CommitMessage) {
+    $CommitMessage = "Update project $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
+}
 git commit -m "$CommitMessage"
 
-# Set remote URL menggunakan PAT
-$RemoteURL = "https://${GitHubUsername}:${GitHubPATPlain}@github.com/${GitHubUsername}/${RepoName}.git"
+# Pull dulu untuk sinkronisasi
+Write-Host "Melakukan git pull untuk sinkronisasi..." -ForegroundColor Yellow
+$pullResult = git pull $RemoteURL $BranchName --allow-unrelated-histories 2>&1
 
-# Cek apakah remote origin sudah ada
-$remote = git remote
-if ($remote -contains "origin") {
-    git remote set-url origin $RemoteURL
-    Write-Host "Remote origin di-update."
-} else {
-    git remote add origin $RemoteURL
-    Write-Host "Remote origin ditambahkan."
+if ($pullResult -match "CONFLICT") {
+    Write-Host "Terjadi konflik saat pull!" -ForegroundColor Red
+    $choice = Read-Host "Apakah ingin resolve konflik otomatis dengan versi lokal? (y/n)"
+    if ($choice -eq "y") {
+        Write-Host "Menyelesaikan konflik dengan versi lokal..." -ForegroundColor Yellow
+        git merge --strategy-option theirs
+        git add .
+        git commit -m "Resolve conflicts using local version"
+    } else {
+        Write-Host "Batal push karena konflik belum diselesaikan." -ForegroundColor Red
+        exit
+    }
 }
 
-# Cek apakah branch main ada
-$branchExists = git branch --list main
-if (-not $branchExists) {
-    git checkout -b main
-    Write-Host "Branch 'main' dibuat."
-} else {
-    git checkout main
+# Push ke remote
+Write-Host "Melakukan git push ke remote..." -ForegroundColor Green
+try {
+    git push $RemoteURL $BranchName
+} catch {
+    Write-Host "Push gagal, kemungkinan remote memiliki commit baru." -ForegroundColor Red
+    $forceChoice = Read-Host "Apakah ingin melakukan force push? (y/n)"
+    if ($forceChoice -eq "y") {
+        git push $RemoteURL $BranchName --force
+        Write-Host "Force push selesai!" -ForegroundColor Cyan
+    } else {
+        Write-Host "Push dibatalkan." -ForegroundColor Red
+        exit
+    }
 }
 
-# Push ke branch main
-git push -u origin main
-
-Write-Host "Upload selesai!"
+Write-Host "Upload selesai!" -ForegroundColor Cyan
