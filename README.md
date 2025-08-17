@@ -287,3 +287,7 @@ dotnet run --project CreditAPI
 ```
 dotnet test
 ```
+## apabila mengalami error silahkan extra file 
+```
+creditAPI.rar
+```
