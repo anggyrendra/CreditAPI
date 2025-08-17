@@ -1,27 +1,60 @@
-# Nama repo GitHub
-$REPO_NAME = "CreditAPI"
-$GITHUB_USER = "anggyrendra" # Ganti dengan username GitHub-mu
-$GITHUB_URL = "https://github.com/$GITHUB_USER/$REPO_NAME.git"
+# =======================
+# Script Upload GitHub Otomatis
+# =======================
 
-# Inisialisasi git jika belum
-if (!(Test-Path ".git")) {
+# Konfigurasi
+$RepoPath = "D:\KreditAPI\CreditAPI"   # Folder project
+$CommitMessage = Read-Host "Masukkan pesan commit"
+
+# Input GitHub credentials
+$GitHubUsername = Read-Host "anggyrendra"
+$GitHubPAT = Read-Host "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" -AsSecureString
+
+# Convert secure string ke plain text untuk digunakan di URL
+$PtrBSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($GitHubPAT)
+$GitHubPATPlain = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($PtrBSTR)
+
+# Nama repo (sesuai repo GitHub Anda)
+$RepoName = "CreditAPI"
+
+# Pindah ke folder project
+Set-Location $RepoPath
+
+# Cek apakah git sudah di-init
+if (-not (Test-Path ".git")) {
     git init
+    Write-Host "Git repository baru di-init."
 }
 
-# Set branch utama
-git branch -M main
-
-# Tambahkan semua file
+# Tambahkan semua perubahan
 git add .
 
 # Commit perubahan
-git commit -m "Initial commit"
+git commit -m "$CommitMessage"
 
-# Tambahkan remote repository jika belum ada
+# Set remote URL menggunakan PAT
+$RemoteURL = "https://${GitHubUsername}:${GitHubPATPlain}@github.com/${GitHubUsername}/${RepoName}.git"
+
+# Cek apakah remote origin sudah ada
 $remote = git remote
-if (-not ($remote -contains "origin")) {
-    git remote add origin $GITHUB_URL
+if ($remote -contains "origin") {
+    git remote set-url origin $RemoteURL
+    Write-Host "Remote origin di-update."
+} else {
+    git remote add origin $RemoteURL
+    Write-Host "Remote origin ditambahkan."
 }
 
-# Push ke GitHub
+# Cek apakah branch main ada
+$branchExists = git branch --list main
+if (-not $branchExists) {
+    git checkout -b main
+    Write-Host "Branch 'main' dibuat."
+} else {
+    git checkout main
+}
+
+# Push ke branch main
 git push -u origin main
+
+Write-Host "Upload selesai!"
